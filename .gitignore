@@ -1,0 +1,8 @@
+ca65.exe
+ld65.exe
+*.dbg
+*.lbl
+*.lst
+*.map
+*.o
+*.nes
