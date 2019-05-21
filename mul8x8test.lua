@@ -17,24 +17,24 @@ multiplicand = 0
 cycles       = 0
 
 function triggerFactorSave(address, value)
-	local state  = emu.getState()
+    local state  = emu.getState()
     multiplier   = emu.read(zp_multiplier,   emu.memType.cpuDebug, false)
     multiplicand = emu.read(zp_multiplicand, emu.memType.cpuDebug, false)
     cycles       = state.cpu.cycleCount
-	return
+    return
 end
 
 function triggerCountCycles(address, value)
-	local state = emu.getState()
+    local state = emu.getState()
 
-	-- Minus 4 due to the "sta triggerFactorSave"
-	-- We don't subtract an additional 4 (for "sta triggerCountCycles") because
-	-- on writes, callbacks get called *before* the instruction executes.
+    -- Minus 4 due to the "sta triggerFactorSave"
+    -- We don't subtract an additional 4 (for "sta triggerCountCycles") because
+    -- on writes, callbacks get called *before* the instruction executes.
     total = state.cpu.cycleCount - cycles - 4
 
-  	-- emu.log(multiplier.."*"..multiplicand.." "..total)
-  	emu.log(total)
-	return
+    -- emu.log(multiplier.."*"..multiplicand.." "..total)
+    emu.log(total)
+    return
 end
 
 emu.addMemoryCallback(triggerFactorSave,  emu.memCallbackType.cpuWrite, 0xFFF0, 0xFFF0)
