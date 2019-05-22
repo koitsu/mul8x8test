@@ -31,12 +31,7 @@ multiplicand    = $01
 resultL         = $02
 resultH         = $03
 temp1           = $04
-
-; Equate pointing to the algorithm of choice
-; algorithm       = hokkaidou
-; algorithm       = lance
-; algorithm       = tepples_mul8
-algorithm       = supercat
+ptr_str_algo    = $05   ; 2 bytes in size
 
 .segment "CODE"
 
@@ -54,6 +49,25 @@ algorithm       = supercat
     sta $FFF1
 .endmacro
 
+.macro runAlgorithm algo, str
+    lda #.lobyte(str)       ; Point ptr_str_algo to the address of the
+    sta ptr_str_algo        ; algorithm name/string (NULL-terminated)
+    lda #.hibyte(str)
+    sta ptr_str_algo+1
+
+    ;
+    ; Generate code doing 0*255, 1*254, 2*253, etc...
+    ;
+    VAR2 .set 255
+    .repeat 256, VAR1
+        lda #VAR1
+        sta multiplier
+        lda #VAR2
+        sta multiplicand
+        jsr algo
+        VAR2 .set VAR2 - 1
+    .endrepeat
+.endmacro
 
 .proc RESET
     sei                     ; Inhibit some IRQs
@@ -72,20 +86,10 @@ algorithm       = supercat
     dex                     ; De héros à zéro
     bne :-
 
-    ;
-    ; Generate code doing 0*255, 1*254, 2*253, etc...
-    ;
-    VAR2 .set 255
-    .repeat 256, VAR1
-        lda #VAR1
-        sta multiplier
-        lda #VAR2
-        sta multiplicand
-
-        jsr algorithm
-
-        VAR2 .set VAR2 - 1
-    .endrepeat
+    runAlgorithm proc_hokkaidou, str_hokkaidou
+    runAlgorithm proc_lance, str_lance
+    runAlgorithm proc_tepples_mul8, str_tepples_mul8
+    runAlgorithm proc_supercat, str_supercat
 
     ; Induce BRK to stop Mesen
     ; ca65 doesn't support a BRK signature byte >:/
@@ -102,7 +106,7 @@ algorithm       = supercat
 .endproc
 
 
-.proc hokkaidou
+.proc proc_hokkaidou
     triggerFactorSave
     lda #$00
     sta temp1
@@ -126,9 +130,10 @@ algorithm       = supercat
     triggerCountCycles
     rts
 .endproc
+str_hokkaidou:      .asciiz "hokkaidou"
 
 
-.proc lance
+.proc proc_lance
     triggerFactorSave
     lda #0          ;LSB'S OF PRODUCT = ZERO
     sta resultH     ;MSB'S OF PRODUCT = ZERO
@@ -147,13 +152,14 @@ algorithm       = supercat
     triggerCountCycles
     rts
 .endproc
+str_lance: .asciiz "lance"
 
 
 ; @param A one factor
 ; @param Y another factor
 ; @return high 8 bits in A; low 8 bits in $0000
 ;         Y and $0001 are trashed; X is untouched
-.proc tepples_mul8
+.proc proc_tepples_mul8
     lda multiplier
     ldy multiplicand
     triggerFactorSave
@@ -175,10 +181,11 @@ algorithm       = supercat
     triggerCountCycles
     rts
 .endproc
+str_tepples_mul8: .asciiz "tepples_mul8"
 
 
 ; Compute mul1*mul2+acc -> acc:mul1 [mul2 is unchanged]
-.proc supercat
+.proc proc_supercat
     lda #0
     triggerFactorSave
     ldx #8
@@ -196,6 +203,7 @@ algorithm       = supercat
     triggerCountCycles
     rts
 .endproc
+str_supercat: .asciiz "supercat"
 
 
 .segment "HEADER"
